@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  nuxt-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "7000:7000"
+    environment:
+      - NODE_ENV=production
+      - NUXT_PUBLIC_API_BASE=http://openai-chat.social-selling.pro
+    restart: unless-stopped 
