@@ -6,10 +6,15 @@ import Cookies from 'js-cookie';
 
 const markdown = new MarkdownIt();
 const chatContainer = ref(null);
-
 const messages = ref([]);
 const input = ref('');
 const isLoading = ref(false);
+const maxTokens = ref(1000);
+const temperature = ref(0.7);
+
+const config = useRuntimeConfig();
+const api = config.public.apiBackend;
+const token = config.public.tokenBackend;
 
 const handleSubmit = async (e) => {
   e.preventDefault();
@@ -20,32 +25,31 @@ const handleSubmit = async (e) => {
     content: input.value
   });
 
-  const userMessage = input.value;
   input.value = '';
+  await fetchApiChat()
+};
 
+const fetchApiChat = async () => {
   try {
     isLoading.value = true;
-
-    // const api = useRuntimeConfig().apiBackend;
-    // const token = useRuntimeConfig().tokenBackend;
-
-    // const response = await fetch("api/chat", {
-    //   method: 'GET',
-    //   headers: {
-    //     'Content-Type': 'application/json',
-    //     'token': token
-    //   },
-    //   body: JSON.stringify({ message: userMessage })
-    // });
-    const response = await fetch("api/chat", {
-      method: 'GET',
-    })
+    const response = await fetch(api, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'token': token
+      },
+      body: JSON.stringify({
+        max_tokens: maxTokens.value,
+        temperature: temperature.value,
+        message: messages.value
+      })
+    });
 
     const data = await response.json();
 
     messages.value.push({
       role: 'assistant',
-      content: data.message || data.response || data
+      content: data.message || data.response || data.data || data
     });
   } catch (error) {
     console.error('Error:', error);
@@ -53,22 +57,28 @@ const handleSubmit = async (e) => {
   } finally {
     isLoading.value = false;
   }
-};
+}
 
 onMounted(async () => {
   const route = useRoute();
   
-  if (route.query.type === '2') {
+  if (route.query.type == '2') {
     const formIncident = Cookies.get('form-incident');
     
     if (formIncident) {
       try {
         let decodedMessage = JSON.parse(formIncident);
         let content = `Kênh: ${decodedMessage["channel"]} \n Tóm tắt: ${decodedMessage["summarizeIncident"]} \n Độ lớn: ${decodedMessage["level"]} \n Hãy đánh giá sự vụ trên và đưa ra hướng giải quyết`
-        await append({
+        messages.value.push({
           role: 'user',
-          content: content
+          content: content,
         });
+        await fetchApiChat()
+        // await append({
+        //   role: 'user',
+        //   content: content
+        // });
+
         // await nextTick();
         // await handleSubmit();
       } catch (error) {
@@ -84,7 +94,7 @@ watch(messages, () => {
       chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
     }
   });
-});
+},{ deep: true, immediate: true });
 
 watch(input, () => {
   nextTick(() => {
@@ -99,6 +109,30 @@ watch(input, () => {
   <div class="max-w-xl mx-auto text-black">
     <h1 class="my-8 text-5xl font-bold text-center text-black">AI Chatbot</h1>
     <div class="max-w-xl mx-auto">
+      <div class="mb-4 flex gap-4">
+        <div class="flex-1">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Max Tokens</label>
+          <input
+            v-model="maxTokens"
+            type="number"
+            step="1"
+            min="0"
+            max="10000"
+            class="w-full p-1 text-sm text-black bg-gray-100 border rounded-md shadow border-white/40"
+          />
+        </div>
+        <div class="flex-1">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Temperature</label>
+          <input
+            v-model="temperature"
+            type="number"
+            step="0.1"
+            min="0"
+            max="1"
+            class="w-full p-1 text-sm text-black bg-gray-100 border rounded-md shadow border-white/40"
+          />
+        </div>
+      </div>
       <div class="bg-white rounded-md shadow h-[60vh] flex flex-col justify-between">
         <div ref="chatContainer" class="h-full overflow-auto chat-messages">
           <div v-for="(message, i) in messages" :key="i" class="flex flex-col p-4">

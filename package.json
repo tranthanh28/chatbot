@@ -12,7 +12,10 @@
   "dependencies": {
     "@ai-sdk/openai": "^1.0.4",
     "@ai-sdk/vue": "^1.0.2",
+    "@element-plus/icons-vue": "^2.3.1",
+    "@element-plus/nuxt": "^1.1.0",
     "ai": "^4.0.4",
+    "element-plus": "^2.9.1",
     "js-cookie": "^3.0.5",
     "markdown-it": "^14.1.0",
     "market": "^1.0.0",
